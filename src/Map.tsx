@@ -25,7 +25,7 @@ export default function Map() {
       setMap = new Tmapv2.Map('TMapApp', {
           center: new Tmapv2.LatLng(`+ getLat +`, `+ getLng +`),
           width: '100%',
-          height: '400px',
+          height: '500px',
           zoom: 16
       });
       addMarkerAni(Tmapv2.MarkerOptions.ANIMATE_FLICKER);
@@ -43,7 +43,7 @@ export default function Map() {
         draggable: true,
         animation: aniType,
         animationLength: 500,
-        label: 'BRIT',
+        label: '<span style="font-weight: bold; color: red;">현 위치</span>',
         title: '타이틀',
         map: setMap
       });
@@ -60,9 +60,53 @@ export default function Map() {
     initTmap();
   `
   script.type = 'text/javascript'
-  script.async = true
+  script.defer = true
+  script.id = 'tmapInit'
 
-  let count: number = 0
+  const script1 = document.createElement('script')
+  script1.type = 'text/javascript'
+  script1.defer = true
+  script1.id = 'tmapSearch'
+
+  const addSearchMaker = (getCoords: string) => {
+    script1.innerHTML = `
+      var markers1 = [];
+      var coords1 = [`+ getCoords + `];
+
+      function addMarker() {
+        var coordIdx1 = 0;
+        removeAddedMarkers();
+
+        var func = function() {
+          //Marker 객체 생성.
+          var marker1 = new Tmapv2.Marker({
+            position: new Tmapv2.LatLng(coords1[coordIdx1].lat, coords1[coordIdx1].lng), //Marker의 중심좌표 설정.
+            label: coords1[coordIdx1].index, //Marker의 라벨.
+            title: (coords1[coordIdx1].index + ' ' + coords1[coordIdx1].title), //Marker 타이틀.
+            map: setMap //Marker가 표시될 Map 설정.
+          });
+          markers1.push(marker1);
+          coordIdx1++;
+
+          if (coordIdx1 < (coords1.length - 1)) {
+            // 일정 시간 간격으로 마커를 생성하는 함수를 실행합니다
+            setTimeout(func, 1000);
+          }
+        }
+        // 일정 시간 간격으로 마커를 생성하는 함수를 실행합니다
+        setTimeout(func, 1000);
+      }
+
+      function removeAddedMarkers() {
+        for (var i = 0; i < markers1.length; i++) {
+          markers1[i].setMap(null);
+        }
+        markers1 = [];
+      }
+
+      addMarker();
+    `
+  }
 
   const [rendered, setRendered] = useState(false);
   useEffect(() => {
@@ -90,11 +134,9 @@ export default function Map() {
     });
   };
 
-  const getSearchMovie = async () => {
-    // const ID_KEY: string = '06KgZ7pRRC_FRihC_6ef';
-    // const SECRET_KEY: string = 'VMa_XW3Qie';
-    const KAKAO_KEY: string = 'KakaoAK d49e0f1eba3e8b2b6af118762ce8375a'
-    const search_radius: number = 1600
+  const getSearch = async () => {
+    const KAKAO_KEY: string | undefined = (process.env.REACT_APP_KAKAO_KEY as string)
+    const search_radius: number = 600
     const search_size: number = 15
     let search_page: number = 1
     const search: string = inputs.search
@@ -102,8 +144,7 @@ export default function Map() {
       if (search === "") {
         setState({result: [], isLoading: false, meta: []})
       } else {
-        // const { data: { items }} = await axios.get('/v2/local/search/keyword.json', {
-        const response = await axios.get('/v2/local/search/keyword.json', {
+        const response = await axios.get('https://dapi.kakao.com/v2/local/search/keyword.json', {
           params: {
             query: search,
             radius: search_radius,
@@ -111,21 +152,27 @@ export default function Map() {
             page: search_page,
             x: getLng,
             y: getLat,
-            // category_group_code: 'FD6',
           },
           headers: {
-              // 'X-Naver-Client-Id': ID_KEY,
-              // 'X-Naver-Client-Secret': SECRET_KEY
               'Authorization': KAKAO_KEY,
             }
           });
 
-        console.log(response.data);
+        let getCoords: string = '';
         response.data.documents.map((value: any, index: number) => {
           let getData = value["category_name"].split('>')
           value["category_name_detail"] = getData[getData.length - 1].trim()
+          getCoords += '{lat:' + value["y"] + ',lng:' + value["x"] + ',title:\'' + value["place_name"] + '\',index:' + (index + 1) + '}'
+          if (index < (response.data.documents.length - 1)) { getCoords += ', ' }
+          addSearchMaker(getCoords)
         })
-        setState({ result: response.data.documents, isLoading: false, meta: response.data.meta });
+        setState({ result: response.data.documents, isLoading: false, meta: response.data.meta })
+
+        let getJavascript = document.getElementById("tmapSearch")
+        if (getJavascript) {
+          getJavascript.remove()
+        }
+        document.head.appendChild(script1)
       }
     } catch (error) {
       console.log(error);
@@ -154,13 +201,13 @@ export default function Map() {
           초기화
         </button>
         <input name="search" placeholder="검색어를 입력하세요" onChange={onChange} value={search} />
-        <button type="button" onClick={getSearchMovie}>검색</button>
+        <button type="button" onClick={getSearch}>검색</button>
         { states.result.length === 0 && <p>검색결과 없음</p> }
         <ul style={{ margin: '10px 0 0' }}>
           {states.result.map((value, index) => (
             <li style={{ padding: '5px 0 0 20px' }}>
               <span key={ index }>
-                {value["place_name"]}
+                {index+1} {value["place_name"]}
                 <sub style={{ display: 'inline-block', margin: '0 0 0 10px', fontSize: '12px', color: '#999', verticalAlign: '2px' }}>
                   {value["category_name_detail"]}{" / "}{value["road_address_name"]}
                 </sub>

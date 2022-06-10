@@ -119,16 +119,11 @@
           if (geometry.type == "LineString") {
             for ( var j in geometry.coordinates) {
               // 경로들의 결과값(구간)들을 포인트 객체로 변환 
-              var latlng = new Tmapv2.Point(
-                  geometry.coordinates[j][0],
-                  geometry.coordinates[j][1]);
+              var latlng = new Tmapv2.Point(geometry.coordinates[j][0], geometry.coordinates[j][1]);
               // 포인트 객체를 받아 좌표값으로 변환
-              var convertPoint = new Tmapv2.Projection.convertEPSG3857ToWGS84GEO(
-                  latlng);
+              var convertPoint = new Tmapv2.Projection.convertEPSG3857ToWGS84GEO(latlng);
               // 포인트객체의 정보로 좌표값 변환 객체로 저장
-              var convertChange = new Tmapv2.LatLng(
-                  convertPoint._lat,
-                  convertPoint._lng);
+              var convertChange = new Tmapv2.LatLng(convertPoint._lat, convertPoint._lng);
               // 배열에 담기
               drawInfoArr.push(convertChange);
             }
@@ -185,7 +180,7 @@
 
   var markers = [];
   function addMarkerAni(aniType) {
-		var coordIdx = 1;
+		var coordIdx = 0;
 
 		removeMarkers(); // 지도에 새로 등록하기 위해 모든 마커를 지우는 함수입니다.
 
@@ -195,7 +190,7 @@
 				position: new Tmapv2.LatLng(setCoords[coordIdx].lat, setCoords[coordIdx].lng), //Marker의 중심좌표 설정.
 				draggable: true, //Marker의 드래그 가능 여부.
 				animation: aniType, //Marker 애니메이션.
-				animationLength: 500, //애니메이션 길이.
+				animationLength: 1000, //애니메이션 길이.
 				label: 'test', //Marker의 라벨.
 				title: '타이틀', //Marker 타이틀.
 				map: map //Marker가 표시될 Map 설정.
@@ -203,13 +198,13 @@
 			markers.push(marker);
       coordIdx++;
 
-			if (coordIdx < (setCoords.length - 1)) {
+			if (coordIdx < setCoords.length) {
 				// 일정 시간 간격으로 마커를 생성하는 함수를 실행합니다
 				setTimeout(func, 1000);
 			}
 		}
 		// 일정 시간 간격으로 마커를 생성하는 함수를 실행합니다
-		setTimeout(func, 1000);
+		setTimeout(func, (2000 * (setCoords.length + 1)));
 	}
 
   function removeMarkers() {
@@ -229,8 +224,8 @@
 
 		polyline_ = new Tmapv2.Polyline({
 			path : arrPoint,
-			strokeColor : "#DD0000",
-			strokeWeight : 6,
+			strokeColor : "#ff0000",
+			strokeWeight : 4,
 			map : map
 		});
 		resultdrawArr.push(polyline_);
